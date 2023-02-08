@@ -5,12 +5,15 @@
     Description: Lexical Analyzer
 */
 
+// REALNUM = NUM DOT digit digit*
+// BASE08NUM = ((pdigit8 digit8*) + 0) (x) (08) 
+// BASE16NUM = ((pdigit16 digit16*) + 0) (x) (16)
+
 #include <iostream>
 #include <istream>
 #include <vector>
 #include <string>
 #include <cctype>
-
 
 #include "lexer.h"
 #include "inputbuf.h"
@@ -23,7 +26,7 @@ string reserved[] = { "END_OF_FILE",
     "EQUAL", "COLON", "COMMA", "SEMICOLON",
     "LBRAC", "RBRAC", "LPAREN", "RPAREN",
     "NOTEQUAL", "GREATER", "LESS", "LTEQ", "GTEQ",
-    "DOT", "NUM", "ID", "ERROR" // TODO: Add labels for new token types here (as string)
+    "DOT", "NUM", "ID", "ERROR", "BASE08NUM", "BASE16NUM"
 };
 
 #define KEYWORDS_COUNT 5
