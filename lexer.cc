@@ -4,6 +4,7 @@
     Course: CSE340 - Principles of Programming Languages
     Professor: James Gordon
     Semester: Spring 2023
+    Due: Feb 12th, 2023
 */
 
 #include <iostream>
@@ -11,7 +12,6 @@
 #include <vector>
 #include <string>
 #include <cctype>
-
 #include "lexer.h"
 #include "inputbuf.h"
 
@@ -31,6 +31,10 @@ string reserved[] = { "END_OF_FILE",
 #define KEYWORDS_COUNT 5
 string keyword[] = { "IF", "WHILE", "DO", "THEN", "PRINT" };
 
+/**
+ * Displaying TOKEN found as 
+ * {token_lexeme, token_name, line_no}
+*/
 void Token::Print()
 {
     cout << "{" << this->lexeme << " , "
@@ -38,6 +42,10 @@ void Token::Print()
          << this->line_no << "}\n";
 }
 
+/**
+ * LexicalAnalyzer class constructor. 
+ * Initializes the class variables accordingly.
+*/
 LexicalAnalyzer::LexicalAnalyzer()
 {
     this->line_no = 1;
@@ -46,6 +54,11 @@ LexicalAnalyzer::LexicalAnalyzer()
     tmp.token_type = ERROR;
 }
 
+/**
+ * Iterate through a string till it 
+ * arrives to the first character. It will
+ * ignore all spaces found inside of the string.
+*/
 bool LexicalAnalyzer::SkipSpace()
 {
     char c;
@@ -66,6 +79,10 @@ bool LexicalAnalyzer::SkipSpace()
     return space_encountered;
 }
 
+/**
+ * Checks if a string is a reserved keyword
+ * in our system. If so, true, else, false.
+*/
 bool LexicalAnalyzer::IsKeyword(string s)
 {
     for (int i = 0; i < KEYWORDS_COUNT; i++) {
@@ -76,6 +93,10 @@ bool LexicalAnalyzer::IsKeyword(string s)
     return false;
 }
 
+/**
+ * Returns TokenType of keyword if found
+ * in the string. 
+*/
 TokenType LexicalAnalyzer::FindKeywordIndex(string s)
 {
     for (int i = 0; i < KEYWORDS_COUNT; i++) {
@@ -86,13 +107,23 @@ TokenType LexicalAnalyzer::FindKeywordIndex(string s)
     return ERROR;
 }
 
+/**
+ * Go through the input and begin scanning for numbers, 
+ * trying to build REALNUM, BASE08NUM or BASE16NUM tokens.
+*/
 Token LexicalAnalyzer::ScanNumber()
 {
+    // Initializing local variables
     char c;
-	char temp,temp2,temp3;
+	char temp;
+    char temp2; 
+    char temp3;
+
 	int flag_08 = 0;
 	int flag_zero = 0;
+
 	char arr[100];
+    
     input.GetChar(c);
     
     if (isdigit(c)) {
@@ -102,25 +133,25 @@ Token LexicalAnalyzer::ScanNumber()
             flag_zero = 1;
         } else {
             tmp.lexeme = "";
-            while (!input.EndOfInput() && isdigit(c)) {
+            while (isdigit(c) && !input.EndOfInput()) {
                 tmp.lexeme += c;
                 input.GetChar(c);
-				if(c == '8' || c == '9'){
-					flag_08= 1;
+				if(c == '9' || c == '8'){
+					flag_08 = 1;
 				}
 		    }
             
             if (!input.EndOfInput()) {
                 input.UngetChar(c);
             }
-            
         }
 
 		input.GetChar(temp);
 		
         if (temp == 'x'){
 		    input.GetChar(temp2);
-		    if(temp2 == '0'){
+		    
+            if(temp2 == '0'){
 		        input.GetChar(temp3);
 		        
                 if (temp3 == '8' && flag_08 == 0){
@@ -128,22 +159,22 @@ Token LexicalAnalyzer::ScanNumber()
                     tmp.token_type = BASE08NUM;
                     tmp.line_no = line_no;
                     return tmp;
-		        } else {
-		            input.UngetChar(temp3);
-		        }
+
+		        } else {input.UngetChar(temp3);}
 		
                 input.UngetChar(temp2);
 
 		    } else if(temp2 == '1') {
 		        input.GetChar(temp3);
+
 		        if (temp3 == '6'){
 		            tmp.lexeme = tmp.lexeme+temp+temp2+temp3;
 			        tmp.token_type = BASE16NUM;
                     tmp.line_no = line_no;
                     return tmp;
-                } else {
-		            input.UngetChar(temp3);
-		        }
+
+                } else { input.UngetChar(temp3); }
+
 		        input.UngetChar(temp2);
 
 		    } else {
@@ -155,7 +186,7 @@ Token LexicalAnalyzer::ScanNumber()
 
 		} else if( temp == '.'){
             
-            int flagnonzero =0;
+            int flagnonzero = 0;
             string abc= "";
             input.GetChar(temp2);
 
@@ -172,10 +203,7 @@ Token LexicalAnalyzer::ScanNumber()
                     input.UngetChar(temp2);
                 }
 
-            } else{
-                input.UngetChar(temp2);
-            }
-            
+            } else{ input.UngetChar(temp2); }
             
             if(flagnonzero == 0 && flag_zero == 1){  
                 input.UngetString(abc);
@@ -207,7 +235,7 @@ Token LexicalAnalyzer::ScanNumber()
         	   
             input.UngetChar(temp);
 
-        } else if(temp == 'A' || temp == 'B' || temp == 'C' || temp == 'D' || temp == 'E' || temp == 'F' ) {
+        } else if(temp == 'F' || temp == 'C' || temp == 'B' || temp == 'E' || temp == 'D' || temp == 'A' ) {
 		    int count=0;
 		    int tempcount = 0;
 		    char arr[100];
@@ -218,7 +246,7 @@ Token LexicalAnalyzer::ScanNumber()
             }
             
             tempcount = count;
-            temp= arr[count];
+            temp = arr[count];
 		    
 		   
             if(temp == 'x'){ 
@@ -239,8 +267,8 @@ Token LexicalAnalyzer::ScanNumber()
                         return tmp;
                         
                     } else {
-                    input.UngetChar(temp3);
-                    input.UngetChar(temp2);	
+                        input.UngetChar(temp3);
+                        input.UngetChar(temp2);	
                     }					
 			    
                 } else { input.UngetChar(temp2);}
@@ -261,6 +289,7 @@ Token LexicalAnalyzer::ScanNumber()
         tmp.line_no = line_no;
         return tmp;
     } else {
+        
         if (!input.EndOfInput()) {
             input.UngetChar(c);
         }
