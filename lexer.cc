@@ -31,6 +31,10 @@ string reserved[] = { "END_OF_FILE",
 #define KEYWORDS_COUNT 5
 string keyword[] = { "IF", "WHILE", "DO", "THEN", "PRINT" };
 
+// HELPER FUNCTIONS
+bool checkBase16_alphabet(char c){return c == 'F' || c == 'C' || c == 'B' || c == 'E' || c == 'D' || c == 'A';}
+bool checkBase16(char c){return isdigit(c) || checkBase16_alphabet(c);}
+
 /**
  * Displaying TOKEN found as 
  * {token_lexeme, token_name, line_no}
@@ -117,13 +121,11 @@ Token LexicalAnalyzer::ScanNumber()
     
     // temporary characters that we will
     // use to check if its a BASE08NUM or
-    // BASE16NUM
+    // BASE16NUM and add to the lexeme after 
+    // checking
 	char ct;
     char ct2; 
     char ct3;
-
-    bool b0 = false;
-    bool b08 = false;
 
 	char arr[100];
     
@@ -131,21 +133,23 @@ Token LexicalAnalyzer::ScanNumber()
     
     if (isdigit(c)) {
         
-        if (c == '0') {
-            tmp.lexeme = "0";
-            b0 = true;
-        } else {
+        if (c != '0') {
             tmp.lexeme = "";
             
+            // Iterating through rest of input
+            // checking if there is an 8, if so
+            // then it's NOT a BASE08NUM (making b08 false)
             while (isdigit(c) && !input.EndOfInput()) {
                 tmp.lexeme += c;
                 input.GetChar(c);
-                b08 = (c == '8');
 		    }
             
             if (!input.EndOfInput()) {
                 input.UngetChar(c);
             }
+
+        } else {
+            tmp.lexeme = "0";
         }
 
 		input.GetChar(ct);
@@ -156,7 +160,7 @@ Token LexicalAnalyzer::ScanNumber()
             if(ct2 == '0'){
 		        input.GetChar(ct3);
 		        
-                if (ct3 == '8' && !b08){                    // BASE08NUM Identified
+                if (ct3 == '8'){                            // BASE08NUM Identified
                     tmp.lexeme = tmp.lexeme+ct+ct2+ct3;     // Updating lexeme
                     tmp.token_type = BASE08NUM;             // Updating token type
                     tmp.line_no = line_no;                  // Updating line number
@@ -169,11 +173,11 @@ Token LexicalAnalyzer::ScanNumber()
 		    } else if(ct2 == '1') {
 		        input.GetChar(ct3);
 
-		        if (ct3 == '6'){
-		            tmp.lexeme = tmp.lexeme+ct+ct2+ct3;
-			        tmp.token_type = BASE16NUM;
-                    tmp.line_no = line_no;
-                    return tmp;
+		        if (ct3 == '6'){                            // BASE16NUM Identified
+		            tmp.lexeme = tmp.lexeme+ct+ct2+ct3;     // Updating lexeme
+			        tmp.token_type = BASE16NUM;             // Updating token type
+                    tmp.line_no = line_no;                  // Updating line number
+                    return tmp;                             // Returning token 
 
                 } else { input.UngetChar(ct3); }
 
@@ -186,20 +190,17 @@ Token LexicalAnalyzer::ScanNumber()
 		    input.UngetChar(ct);
 
 
-		} else if(ct == 'F' || ct == 'C' || ct == 'B' || 
-                  ct == 'E' || ct == 'D' || ct == 'A' ){
+		} else if(checkBase16(ct)){
             int count = 0;
-		    int tempcount = 0;
 		    char arr[100];
 			arr[count] = ct;
 			
-            // *********
-            while(isdigit(arr[count]) || (arr[count] == 'A' || arr[count] == 'B' || arr[count] == 'C' || arr[count] == 'D' || arr[count] == 'E' || arr[count] == 'F' )){
+            // Iterates through 
+            while(checkBase16(arr[count])){
                count++;
-               input.GetChar(arr[count]);      
+               input.GetChar(arr[count]);
             }
             
-            tempcount = count;
             ct = arr[count];
 		    
             if(ct == 'x'){ 
@@ -211,7 +212,7 @@ Token LexicalAnalyzer::ScanNumber()
 				
                     if (ct3 == '6'){                                    // BASE16NUM IDENTIFIED
                         
-                        for(int i=0; i<tempcount; i++){                 // Updating lexeme
+                        for(int i=0; i<count; i++){                     // Updating lexeme
                             tmp.lexeme = tmp.lexeme + arr[i];
                         }
                         
@@ -238,49 +239,51 @@ Token LexicalAnalyzer::ScanNumber()
             }
 
         } else if(ct == '.') {
-            bool flagnonzero = false;
             string lt = "";                 // temporary lexeme
             input.GetChar(ct2);
-
+            
+            // Check if digit after . (DOT)
             if(isdigit(ct2)){
+
+                // Iterate through every char in the input
+                // check to find if ending in 0, which is
+                // NOT valid after . (DOT)
                 while (isdigit(ct2) && !input.EndOfInput()){
-                    flagnonzero = (ct2 != '0');
-                    lt += ct2;
+                    lt += ct2;              // add to temp lexeme
                     input.GetChar(ct2); 
                 }
                 
+                // Unget everything consumed
                 if (!input.EndOfInput()){
                     input.UngetChar(ct2);
                 }
 
             } else{ input.UngetChar(ct2); }
-            
-            if(!flagnonzero && b0){  
-                input.UngetString(lt);
+
+            input.UngetString(lt); 
+            input.GetChar(ct2);
+                
+            if(isdigit(ct2)){                                       // REALNUM Identified
+                tmp.lexeme += '.';
+                
+                // Iterating through the rest of the token. 
+                // REALNUM already identified to be the token, need to add
+                // the rest to lexeme.
+                while (!input.EndOfInput() && (isdigit(ct2))){
+                    tmp.lexeme += ct2;                                // Updating token lexeme
+                    input.GetChar(ct2);
+                }
+
+                if (!input.EndOfInput()) {
+                    input.UngetChar(ct2);
+                }
+
+                tmp.token_type = REALNUM;                           // Updating token type to REALNUM          
+                tmp.line_no = line_no;                              // Updating line number
+                return tmp;                                         // returning full token
             
             } else {
-                input.UngetString(lt); 
-                input.GetChar(ct2);
-					
-                if(isdigit(ct2)){
-                    tmp.lexeme += '.';
-                    
-                    while (!input.EndOfInput() && (isdigit(ct2))){
-                      tmp.lexeme += ct2;
-                      input.GetChar(ct2);
-                    }
-
-                    if (!input.EndOfInput()) {
-                      input.UngetChar(ct2);
-                    }
-
-					tmp.token_type = REALNUM;
-					tmp.line_no = line_no;
-                    return tmp;
-                
-                } else {
-					input.UngetChar(ct2);
-				}
+                input.UngetChar(ct2);
             }
         	   
             input.UngetChar(ct);
@@ -307,6 +310,10 @@ Token LexicalAnalyzer::ScanNumber()
     }
 }
 
+/**
+ * Start checking input based on the 
+ * saved keywords in our system. 
+*/
 Token LexicalAnalyzer::ScanIdOrKeyword()
 {
     char c;
@@ -336,12 +343,23 @@ Token LexicalAnalyzer::ScanIdOrKeyword()
     return tmp;
 }
 
+
+/**
+ * Return the previously retreived token. Used
+ * to build a greater (bigger) token.
+*/
 TokenType LexicalAnalyzer::UngetToken(Token tok)
 {
     tokens.push_back(tok);;
     return tok.token_type;
 }
 
+/**
+ * Retrieving single tokens from from every character
+ * in the input stream. If none found immediately, it will
+ * attempt to build a bigger token depending on the
+ * rules set up. 
+*/
 Token LexicalAnalyzer::GetToken()
 {
     char c;
