@@ -117,17 +117,12 @@ TokenType LexicalAnalyzer::FindKeywordIndex(string s)
 */
 Token LexicalAnalyzer::ScanNumber()
 {
-    char c;
     
     // temporary characters that we will
     // use to check if its a BASE08NUM or
-    // BASE16NUM and add to the lexeme after 
-    // checking
-	char ct;
-    char ct2; 
-    char ct3;
-
-	char arr[100];
+    // BASE16NUM and later add to lexeme.
+    char c;
+	char ct, ct2, ct3;
     
     input.GetChar(c);
     
@@ -135,19 +130,12 @@ Token LexicalAnalyzer::ScanNumber()
         
         if (c != '0') {
             tmp.lexeme = "";
-            
-            // Iterating through rest of input
-            // checking if there is an 8, if so
-            // then it's NOT a BASE08NUM (making b08 false)
             while (isdigit(c) && !input.EndOfInput()) {
-                tmp.lexeme += c;
+                tmp.lexeme += c;                // Updating lexeme
                 input.GetChar(c);
 		    }
-            
-            if (!input.EndOfInput()) {
-                input.UngetChar(c);
-            }
-
+            if (!input.EndOfInput()) { input.UngetChar(c); }
+        
         } else {
             tmp.lexeme = "0";
         }
@@ -195,7 +183,8 @@ Token LexicalAnalyzer::ScanNumber()
 		    char arr[100];
 			arr[count] = ct;
 			
-            // Iterates through 
+            // Iterates through current lexeme, 
+            // checking for B16
             while(checkBase16(arr[count])){
                count++;
                input.GetChar(arr[count]);
